@@ -36,3 +36,16 @@ Meta App Dashboard'da callback URL olarak `https://alan-adiniz/api/hook` kullan�
 npm run lint
 npm run build
 ```
+
+## On-prem binary dağıtımı
+
+`.github/workflows/release-binaries.yml`, Next.js standalone çıktısını source map olmadan üretir, uygulamaya ait sunucu JavaScript'ini obfuscate eder, platformun Node runtime'ı ve native `sqlite3` modülüyle paketler ve payload'ı Rust launcher içine gömer. `main` ve manuel çalıştırmalarda artifact; `v*` etiketi gönderildiğinde GitHub Release dosyaları oluşur.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Launcher payload bütünlüğünü doğrular, sürümlü kullanıcı cache dizinine açar, kalıcı SQLite/Baileys verisini ayrı kullanıcı data dizininde tutar ve tarayıcıyı açar. Çalışma ortamında `ENCRYPTION_KEY` ayrıca güvenli biçimde sağlanmalıdır; build içindeki değer gerçek secret değildir. Windows imzası için repository secret olarak `WINDOWS_CERTIFICATE_BASE64` ve `WINDOWS_CERTIFICATE_PASSWORD` eklenebilir. macOS notarization/signing dağıtım hesabına özel olduğu için release sonrasında ayrıca uygulanmalıdır.
+
+Bu yöntem kaynak teslimini ve sıradan incelemeyi engeller, ancak müşterinin makinesinde çalışan kod için mutlak gizlilik sağlamaz; yönetici yetkili bir kullanıcı çıkarılan/çalışan payload'ı tersine mühendislikle inceleyebilir. Kritik sırlar ve lisans kararı binary içine konulmamalıdır.

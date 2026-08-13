@@ -6,3 +6,5 @@ data/
 npm-debug.log*
 *.tar.gz
 *.txt
+dist/
+launcher/target/

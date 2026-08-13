@@ -34,3 +34,6 @@ Forgot-password always returns a generic response. Admins configure and verify N
 
 ## 2026-08-13 — License a central installation and keep users on it
 First-run central setup validates a licence key against `/api/licence/check`, encrypts the key at rest, and registers the first admin from entered credentials rather than environment variables. Every later login checks the stored licence after credential verification. Missing, inactive, or in-use licences block login; expired licences allow login with a warning. A LAN user enters a private-network central URL and is redirected to that instance for all traffic.
+
+## 2026-08-13 — Ship on-prem builds as embedded standalone payloads
+Platform-native GitHub runners build Next standalone with the matching Node runtime and sqlite3 addon. Application server bundles are obfuscated and source maps removed before a checksum-verified payload is embedded in a Rust launcher. The launcher extracts versioned runtime files to user cache and keeps mutable app data separate. This raises reverse-engineering cost but does not claim secrecy against a machine administrator.

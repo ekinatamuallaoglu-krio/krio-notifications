@@ -5,7 +5,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "package:payload": "node scripts/package-payload.mjs",
+    "package:binary": "npm run build && npm run package:payload && cargo build --release --manifest-path launcher/Cargo.toml"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",
@@ -20,6 +22,8 @@
   },
   "devDependencies": {
     "eslint": "9.39.1",
-    "eslint-config-next": "16.3.0"
+    "eslint-config-next": "16.3.0",
+    "javascript-obfuscator": "4.1.1",
+    "tar": "7.5.9"
   }
 }

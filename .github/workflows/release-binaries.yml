@@ -1,0 +1,85 @@
+name: On-prem binaries
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: krio-notify-linux-x64
+            executable: krio-notify
+          - os: windows-2022
+            artifact: krio-notify-windows-x64
+            executable: krio-notify.exe
+          - os: macos-13
+            artifact: krio-notify-macos-x64
+            executable: krio-notify
+          - os: macos-14
+            artifact: krio-notify-macos-arm64
+            executable: krio-notify
+    runs-on: ${{ matrix.os }}
+    env:
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run package:payload
+      - run: cargo build --release --manifest-path launcher/Cargo.toml
+      - name: Stage executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          $source = if ($IsWindows) { "launcher/target/release/krio-notify.exe" } else { "launcher/target/release/krio-notify" }
+          Copy-Item $source "release/${{ matrix.executable }}"
+      - name: Sign Windows executable
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          [IO.File]::WriteAllBytes("certificate.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          & signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f certificate.pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD "release/${{ matrix.executable }}"
+      - name: Checksums
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "release/${{ matrix.executable }}" -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.executable }}" | Set-Content -NoNewline "release/${{ matrix.executable }}.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          fail_on_unmatched_files: true
