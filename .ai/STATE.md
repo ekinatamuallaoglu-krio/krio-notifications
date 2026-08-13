@@ -1,0 +1,18 @@
+# STATE
+- Purpose: Minimal Baileys-based WhatsApp web client while preserving the existing Graph API features.
+- Stack: Next.js App Router, JavaScript, Baileys 7, Sequelize 6, SQLite.
+- Active UI: multiple account switching; supported chat reading; reply/react/edit/delete/forward; text, media/GIF/voice/sticker, contact, location, and poll sending; 25 MB uploads.
+- Template UI: create and edit browser-local text templates, choose one from a dropdown, turn `{{variables}}` into form fields, and send the filled text to a manually entered number through Baileys.
+- Excel bulk sending: download a per-template `.xlsx` with `telefon` and variable columns, then validate and sequentially send up to 50 rows through Baileys.
+- Auth: scrypt passwords, opaque cookie sessions, forgot/reset flow, admin/user roles, and server-enforced per-user WhatsApp profile access.
+- Admin UI: manage users, roles, passwords, profile visibility, WhatsApp profiles, and global campaign wait times.
+- Email: admins configure and verify SMTP; password-reset links are sent directly by the application.
+- Licensing: first-run central setup activates a licence and registers the admin; every login checks the stored licence, tolerating expiry with a warning.
+- Campaign queue: SQLite-backed per-account sequential worker using durable global randomized min/max pacing (minimum 10 seconds), interactive-send priority, retries, pause/resume/cancel, SSE progress, campaign history, summary cards, and recipient-level detail reports.
+- Realtime updates: Baileys events -> process-local subscribers -> `/api/whatsapp/events` SSE -> event-triggered client refresh; no periodic polling.
+- Auth persists under ignored account directories; contacts/chats/last 500 messages per chat persist atomically under `data/baileys-stores` and load before socket startup.
+- The prior home page is backed up verbatim at `app/page.backup.js`.
+- Existing Graph flow remains `POST /api/messages` -> WhatsApp Graph API; attempts persist in SQLite.
+- Existing authenticated Meta webhook remains at `/api/hook`.
+- Baileys requires a long-running Node process and durable writable disk; never expose auth files.
+- Verify with `npm run lint` and `npm run build`.

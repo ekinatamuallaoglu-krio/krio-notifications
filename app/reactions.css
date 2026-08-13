@@ -1,0 +1,5 @@
+.bubble { position: relative; }
+.bubble:has(.reactions) { margin-bottom: 14px; }
+.reactions { position: absolute; right: 8px; bottom: -17px; z-index: 1; display: flex; gap: 3px; padding: 2px 4px; border: 1px solid var(--krio-line); border-radius: 12px; background: white; box-shadow: 0 2px 6px #25251c18; }
+.reactions button { padding: 0 3px; border: 0; border-radius: 7px; background: transparent; line-height: 20px; }
+.reactions button.own { background: #fff0a8; }

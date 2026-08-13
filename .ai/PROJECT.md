@@ -1,0 +1,2 @@
+# PROJECT
+Krio Notifications is a Turkish-language multi-account WhatsApp chat and local template UI. Baileys powers supported chat operations and sends filled browser-local text templates to manually entered phone numbers. Excel campaigns of up to 50 consented recipients use a durable, paced, per-account queue with interactive-chat priority, live controls, history, summaries, and recipient-level reports. Unsupported protocol/business/call content is omitted; uploads are transient and limited to 25 MB.
