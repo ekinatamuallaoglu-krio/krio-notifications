@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - run: npm ci --prefix ui
+
+      - run: npm run build --prefix ui -- --outDir ../backend/internal/app/web/dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: backend/internal/app/web/dist/
+          retention-days: 1
+
+  build:
+    needs: build-ui
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            ext: ""
+          - os: macos-latest
+            platform: mac
+            ext: ""
+          - os: windows-latest
+            platform: win
+            ext: ".exe"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: backend/internal/app/web/dist/
+
+      - name: Build Go binary
+        working-directory: backend
+        run: go build -trimpath -ldflags="-s -w" -o ../dist/krio-chat${{ matrix.ext }} .
+
+      - name: Install electron dependencies
+        run: npm ci --prefix electron
+
+      - name: Package desktop app
+        run: npm run dist --prefix electron
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: |
+            electron/dist/*.dmg
+            electron/dist/*.exe
+            electron/dist/*.AppImage
+            electron/dist/*.yml
+          retention-days: 7

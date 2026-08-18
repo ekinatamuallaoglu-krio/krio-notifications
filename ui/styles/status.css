@@ -1,0 +1,200 @@
+.status-page {
+  min-height: 100%;
+  overflow-y: auto;
+  padding: clamp(28px, 5vw, 60px);
+  background: var(--paper);
+}
+.status-page > header {
+  max-width: 980px;
+  margin: 0 auto 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.status-page > header h1 {
+  margin: 5px 0 8px;
+  font-size: clamp(32px, 4vw, 46px);
+  letter-spacing: -0.04em;
+}
+.status-page > header p {
+  max-width: 650px;
+  margin: 0;
+  color: var(--muted);
+}
+.status-page > header small,
+.status-page .section-title small {
+  color: #806700;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+.close-status {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 25px;
+}
+.status-layout {
+  max-width: 980px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.15fr);
+  gap: 16px;
+  align-items: start;
+}
+.status-form,
+.status-history {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: 0 10px 35px #2425210a;
+}
+.status-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  margin-top: 18px;
+}
+.status-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+.status-fields input,
+.status-fields select,
+.status-fields textarea {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  outline: 0;
+}
+.status-fields input:focus,
+.status-fields select:focus,
+.status-fields textarea:focus {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px var(--yellow-soft);
+}
+.status-copy,
+.status-media {
+  grid-column: 1/-1;
+}
+.status-media small {
+  font-weight: 500;
+}
+.status-submit {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--yellow);
+  cursor: pointer;
+  font-weight: 850;
+}
+.status-submit:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.status-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+.status-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fbfbf8;
+}
+.status-kind {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--yellow-soft);
+  color: #806700;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+.status-card > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.status-card > span > b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.status-card small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.status-card em {
+  color: #b83c35;
+  font-size: 10px;
+  font-style: normal;
+}
+.status-card > strong {
+  font-size: 10px;
+}
+.status-card > button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #f9e3e0;
+  color: #a33b32;
+  cursor: pointer;
+}
+.status-queued {
+  color: #806700;
+}
+.status-running {
+  color: #2772db;
+}
+.status-sent {
+  color: #23845b;
+}
+.status-failed {
+  color: #b83c35;
+}
+.status-empty {
+  padding: 30px 10px;
+  color: var(--muted);
+  text-align: center;
+}
+@media (max-width: 900px) {
+  .status-layout {
+    grid-template-columns: 1fr;
+  }
+  .status-fields {
+    grid-template-columns: 1fr;
+  }
+  .status-copy,
+  .status-media {
+    grid-column: auto;
+  }
+  .status-card {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+  .status-card > button {
+    grid-column: 3;
+  }
+}

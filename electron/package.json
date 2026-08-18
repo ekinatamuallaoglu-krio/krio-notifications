@@ -1,0 +1,46 @@
+{
+  "name": "krio-connect-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Krio Connect masaüstü uygulaması",
+  "author": "Krio",
+  "main": "main.js",
+  "scripts": {
+    "dev": "APP_URL=http://localhost:5173 electron .",
+    "start": "electron .",
+    "build": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.krio.chat",
+    "productName": "Krio Connect",
+    "icon": "build/icon.svg",
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "bin",
+        "filter": [
+          "krio-chat*"
+        ]
+      }
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

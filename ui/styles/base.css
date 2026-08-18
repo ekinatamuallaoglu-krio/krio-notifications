@@ -1,0 +1,151 @@
+:root {
+  --yellow: #ffca37;
+  --yellow-soft: #fff7cc;
+  --ink: #242521;
+  --muted: #70716c;
+  --line: #e5e5df;
+  --paper: #f7f7f3;
+  --white: #fff;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--paper);
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+button:focus-visible {
+  outline: 3px solid #ffca3788;
+  outline-offset: 2px;
+}
+.notification {
+  --status: #2772db;
+  --status-soft: #eaf2ff;
+  position: fixed;
+  z-index: 100;
+  top: 24px;
+  right: 24px;
+  width: min(380px, calc(100vw - 32px));
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 38px 1fr 28px;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 14px 12px 14px 14px;
+  border: 1px solid #24252116;
+  border-radius: 14px;
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 18px 50px #2425212e;
+  animation: notification-in 0.22s ease-out;
+}
+.notification.success {
+  --status: #23845b;
+  --status-soft: #e8f6ef;
+}
+.notification.warning {
+  --status: #a66b00;
+  --status-soft: #fff3d6;
+}
+.notification.error {
+  --status: #bd4038;
+  --status-soft: #fcecea;
+}
+.notification-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--status-soft);
+  color: var(--status);
+  font-size: 18px;
+  font-weight: 850;
+}
+.notification-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.notification-copy b {
+  color: var(--status);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.notification-copy small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.notification button {
+  align-self: start;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 19px;
+  line-height: 1;
+}
+.notification button:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+.notification > i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--status);
+  transform-origin: left;
+  animation: notification-time 3.5s linear forwards;
+}
+@keyframes notification-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+@keyframes notification-time {
+  to {
+    transform: scaleX(0);
+  }
+}
+#app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
