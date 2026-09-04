@@ -81,6 +81,7 @@ jobs:
             electron/dist/*.exe
             electron/dist/*.AppImage
             electron/dist/*.yml
+            !electron/dist/builder-debug.yml
             dist/krio-chat${{ matrix.ext }}
           retention-days: 7
 
