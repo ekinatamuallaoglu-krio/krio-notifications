@@ -1,12 +1,45 @@
 import * as XLSX from 'xlsx'
 
+function escapeFormatDots(format) {
+  let escaped = '', quoted = false, bracket = false, bracketText = '', hasTime = false
+  for (let index = 0; index < format.length; index++) {
+    const character = format[index]
+    if (!quoted && character === '[') bracket = true, bracketText = ''
+    if (!quoted && bracket) {
+      if (character === ']') {
+        bracket = false
+        if (/^[hms]+$/i.test(bracketText)) hasTime = true
+      } else if (character !== '[') bracketText += character
+      escaped += character
+    } else {
+      const fractionalSeconds =
+        character === '.' && /(?:s|\[s+\])$/i.test(format.slice(0, index)) && /^0+/.test(format.slice(index + 1))
+      if (character === '"') quoted = !quoted
+      if (!quoted && !bracket && /[hs]/i.test(character)) hasTime = true
+      if (character === '\\' && !quoted && index + 1 < format.length)
+        escaped += character + format[++index]
+      else
+        escaped +=
+          character === '.' && !quoted && !bracket && !fractionalSeconds
+            ? '\\.'
+            : character
+    }
+  }
+  return { format: escaped, hasTime }
+}
+
 function cellValue(sheet, row, column, value, date1904) {
   const cell = sheet[XLSX.utils.encode_cell({ r: row, c: column })]
   if (cell?.t === 'n' && cell.z && XLSX.SSF.is_date(cell.z)) {
     try {
-      return XLSX.SSF.format(cell.z, cell.v, { date1904 })
+      const normalized = escapeFormatDots(cell.z)
+      return (
+        XLSX.SSF.format(normalized.hasTime ? normalized.format : 'dd\\.mm\\.yyyy', cell.v, {
+          date1904,
+        }) || cell.w || cell.v
+      )
     } catch {
-      return cell.w || value
+      return cell.w || cell.v
     }
   }
   return value instanceof Date ? value.toLocaleDateString('tr-TR') : value
