@@ -255,6 +255,7 @@ func resetApp(db *sql.DB) error {
 		`krio_messages`, `krio_chats`, `krio_profile_names`,
 		`krio_bulk_operation_items`, `krio_bulk_operations`, `krio_bulk_templates`,
 		`krio_status_posts`,
+		`krio_instagram_profiles`,
 		`krio_user_template_access`, `krio_user_profile_access`,
 		`krio_sessions`, `krio_users`, `krio_settings`,
 	}

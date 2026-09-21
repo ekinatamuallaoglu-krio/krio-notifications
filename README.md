@@ -1,6 +1,6 @@
 # Krio Connect
 
-Krio Connect, WhatsApp hesaplarını masaüstü veya web arayüzü üzerinden yönetmek,
+Krio Connect, WhatsApp ve Instagram hesaplarını masaüstü veya web arayüzü üzerinden yönetmek,
 mesajları görüntülemek, toplu mesaj göndermek ve WhatsApp status içeriklerini
 planlamak için kullanılan Go backend, Vite arayüz ve Electron masaüstü
 uygulamasından oluşur.
@@ -10,9 +10,15 @@ uygulamasından oluşur.
 > kısıtlanması veya kapatılması riski vardır. Kritik hesabınızla kullanmadan
 > önce bu riski değerlendirin.
 
+> **Instagram bağlantısı:** Instagram OAuth ve webhook işlemleri `itsme.krio.tr`
+> relay servisi üzerinden yürür. Yerel uygulama public callback sunmaz ve Meta
+> App Secret veya Instagram access token saklamaz. Müşteri hesapları için Meta
+> Advanced Access ve App Review gerekir.
+
 ## Özellikler
 
 - Birden fazla WhatsApp profili
+- Instagram Professional hesap bağlantısı ve mesajlaşma
 - QR kod ile WhatsApp cihaz bağlantısı
 - Sohbet ve mesaj geçmişi
 - Metin, medya, konum, reaction ve poll mesajlarının görüntülenmesi

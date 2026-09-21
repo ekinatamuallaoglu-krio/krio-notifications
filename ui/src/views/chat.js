@@ -31,8 +31,10 @@ export function messageContent(message) {
     : ''
   const media = `${API}/api/chats/${encodeURIComponent(message.chatId)}/messages/${encodeURIComponent(message.id)}/media`
   const meta = message.metadata || {}
-  if (message.type === 'image' || message.type === 'sticker')
-    return `<img class="message-media ${message.type}" src="${media}" alt="${escapeHTML(message.type === 'sticker' ? 'Etiket' : message.text || 'Fotoğraf')}" loading="lazy">${text}`
+  if (message.type === 'image' || message.type === 'sticker') {
+    const image = `<img class="message-media ${message.type}" src="${media}" alt="${escapeHTML(message.type === 'sticker' ? 'Etiket' : message.text || 'Fotoğraf')}" loading="lazy">`
+    return `${message.type === 'image' && !message.outgoing ? `<button class="message-image-open" type="button" aria-label="Görseli büyüt">${image}</button>` : image}${text}`
+  }
   if (message.type === 'video')
     return `<video class="message-media" src="${media}" controls preload="metadata"></video>${text}`
   if (message.type === 'audio')

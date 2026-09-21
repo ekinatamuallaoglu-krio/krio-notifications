@@ -48,22 +48,24 @@ func ignoredChat(jid types.JID) bool {
 
 type whatsApp struct {
 	sync.RWMutex
-	client      *whatsmeow.Client
-	clients     []*whatsmeow.Client
-	container   *sqlstore.Container
-	db          *sql.DB
-	status      authStatus
-	chats       map[string]*Chat
-	messages    map[string][]Message
-	listeners   map[chan streamEvent]struct{}
-	startupSync sync.Once
-	switchMu    sync.Mutex
-	bulkMu      sync.Mutex
-	statusOnce  sync.Once
-	statusMu    sync.Mutex
-	connectMu   sync.Mutex
-	historyMu   sync.Mutex
-	historyWait map[string]*historySyncWaiter
+	client         *whatsmeow.Client
+	clients        []*whatsmeow.Client
+	container      *sqlstore.Container
+	db             *sql.DB
+	instagram      *instagramClient
+	externalActive string
+	status         authStatus
+	chats          map[string]*Chat
+	messages       map[string][]Message
+	listeners      map[chan streamEvent]struct{}
+	startupSync    sync.Once
+	switchMu       sync.Mutex
+	bulkMu         sync.Mutex
+	statusOnce     sync.Once
+	statusMu       sync.Mutex
+	connectMu      sync.Mutex
+	historyMu      sync.Mutex
+	historyWait    map[string]*historySyncWaiter
 }
 
 type bulkSendRow struct {

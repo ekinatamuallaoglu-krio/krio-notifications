@@ -38,22 +38,25 @@ type Chat struct {
 }
 
 type Profile struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	WhatsAppName string `json:"whatsAppName"`
-	Nickname     string `json:"nickname"`
-	Sound        string `json:"sound"`
-	Volume       int    `json:"volume"`
-	TypingMin    int    `json:"typingMin"`
-	TypingMax    int    `json:"typingMax"`
-	DelayMin     int    `json:"delayMin"`
-	DelayMax     int    `json:"delayMax"`
-	Active       bool   `json:"active"`
-	Unread       int    `json:"unread"`
-	WorkEnabled  bool   `json:"workEnabled"`
-	WorkDays     string `json:"workDays"`
-	WorkStart    string `json:"workStart"`
-	WorkEnd      string `json:"workEnd"`
+	ID           string          `json:"id"`
+	Provider     string          `json:"provider"`
+	AccountID    string          `json:"accountId,omitempty"`
+	Capabilities map[string]bool `json:"capabilities,omitempty"`
+	Name         string          `json:"name"`
+	WhatsAppName string          `json:"whatsAppName"`
+	Nickname     string          `json:"nickname"`
+	Sound        string          `json:"sound"`
+	Volume       int             `json:"volume"`
+	TypingMin    int             `json:"typingMin"`
+	TypingMax    int             `json:"typingMax"`
+	DelayMin     int             `json:"delayMin"`
+	DelayMax     int             `json:"delayMax"`
+	Active       bool            `json:"active"`
+	Unread       int             `json:"unread"`
+	WorkEnabled  bool            `json:"workEnabled"`
+	WorkDays     string          `json:"workDays"`
+	WorkStart    string          `json:"workStart"`
+	WorkEnd      string          `json:"workEnd"`
 }
 
 type BulkTemplate struct {

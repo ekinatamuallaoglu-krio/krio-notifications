@@ -9,11 +9,29 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
-func (s *server) getChats(w http.ResponseWriter, _ *http.Request) {
+func (s *server) getChats(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		chats, err := s.wa.instagram.chats(r.Context())
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, chats)
+		return
+	}
 	writeJSON(w, http.StatusOK, s.wa.chatList())
 }
 
 func (s *server) getMessages(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		messages, err := s.wa.instagram.messages(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, messages)
+		return
+	}
 	id, err := parseChatID(r.PathValue("id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
@@ -23,6 +41,10 @@ func (s *server) getMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) getMedia(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		writeError(w, http.StatusConflict, "Instagram medya proxy desteği hazır değil")
+		return
+	}
 	id, err := parseChatID(r.PathValue("id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
@@ -48,11 +70,6 @@ func (s *server) getMedia(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) postMessage(w http.ResponseWriter, r *http.Request) {
-	id, err := parseChatID(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
-		return
-	}
 	var body struct {
 		Text      string `json:"text"`
 		ReplyToID string `json:"replyToId"`
@@ -66,6 +83,28 @@ func (s *server) postMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		if len([]byte(strings.TrimSpace(body.Text))) > 1000 {
+			writeError(w, http.StatusBadRequest, "Instagram mesajı en fazla 1000 byte olabilir")
+			return
+		}
+		if body.ReplyToID != "" {
+			writeError(w, http.StatusConflict, "Instagram yanıt mesajı desteklemiyor")
+			return
+		}
+		message, err := s.wa.instagram.send(r.Context(), r.PathValue("id"), strings.TrimSpace(body.Text))
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, message)
+		return
+	}
+	id, err := parseChatID(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
+		return
+	}
 	message, err := s.wa.send(r.Context(), id, strings.TrimSpace(body.Text), body.ReplyToID)
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, err.Error())
@@ -75,6 +114,10 @@ func (s *server) postMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) forwardMessage(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		writeError(w, http.StatusConflict, "Instagram iletme desteği yok")
+		return
+	}
 	destination, err := parseChatID(r.PathValue("id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
@@ -108,6 +151,18 @@ func (s *server) reactMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "geçersiz reaksiyon")
 		return
 	}
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		if body.Emoji == "" {
+			writeError(w, http.StatusBadRequest, "geçersiz reaksiyon")
+			return
+		}
+		if err := s.wa.instagram.action(r.Context(), r.PathValue("id"), r.PathValue("messageID"), "react", body.Emoji); err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if err := s.wa.react(r.Context(), r.PathValue("id"), r.PathValue("messageID"), body.Emoji); err != nil {
 		writeError(w, http.StatusServiceUnavailable, err.Error())
 		return
@@ -116,16 +171,28 @@ func (s *server) reactMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) postTyping(w http.ResponseWriter, r *http.Request) {
-	id, err := parseChatID(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
-		return
-	}
 	var body struct {
 		Typing bool `json:"typing"`
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&body) != nil {
 		writeError(w, http.StatusBadRequest, "geçersiz istek")
+		return
+	}
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		action := "typing_off"
+		if body.Typing {
+			action = "typing_on"
+		}
+		if err := s.wa.instagram.action(r.Context(), r.PathValue("id"), "", action, ""); err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	id, err := parseChatID(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "geçersiz sohbet")
 		return
 	}
 	if err := s.wa.setTyping(r.Context(), id, body.Typing); err != nil {
@@ -136,6 +203,14 @@ func (s *server) postTyping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) markRead(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		if err := s.wa.instagram.action(r.Context(), r.PathValue("id"), "", "mark_seen", ""); err != nil {
+			writeError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if err := s.wa.markRead(r.Context(), r.PathValue("id")); err != nil {
 		writeError(w, http.StatusServiceUnavailable, err.Error())
 		return
@@ -144,6 +219,10 @@ func (s *server) markRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) postPresence(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram != nil && s.wa.instagram.activeFor(s.activeProfileID()) {
+		writeError(w, http.StatusConflict, "Instagram presence desteği yok")
+		return
+	}
 	id, err := parseChatID(r.PathValue("id"))
 	if err != nil || id.Server == types.GroupServer {
 		writeError(w, http.StatusBadRequest, "geçersiz kişi")

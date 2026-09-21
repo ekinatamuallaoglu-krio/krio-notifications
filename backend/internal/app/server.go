@@ -50,6 +50,8 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
 	mux.HandleFunc("GET /api/profiles", s.getProfiles)
 	mux.HandleFunc("POST /api/profiles", s.addProfile)
+	mux.HandleFunc("POST /api/instagram/connect", s.instagramConnect)
+	mux.HandleFunc("GET /api/instagram/oauth/{id}", s.instagramOAuthStatus)
 	mux.HandleFunc("POST /api/profiles/{id}/activate", s.activateProfile)
 	mux.HandleFunc("PATCH /api/profiles/{id}", s.renameProfile)
 	mux.HandleFunc("POST /api/profiles/{id}/sync-history", s.syncHistory)

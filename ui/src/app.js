@@ -69,6 +69,7 @@ let bulkSection = 'send'
 let replyTo = null
 let actionMessage = null
 let forwarding = null
+let lightboxImage = null
 let forwardQuery = ''
 let audioContext
 let remoteTyping = null
@@ -111,7 +112,7 @@ function render(scrollToBottom = false) {
   if (appSession.loading) return renderAppLoading()
   if (appSession.setupRequired) return renderSetup()
   if (!appSession.authenticated) return renderAppLogin()
-  if (whatsAppAuth.state !== 'connected') return renderLogin()
+  if (whatsAppAuth.state !== 'connected' && !profiles.length) return renderLogin()
   const oldBox = document.querySelector('.messages')
   const oldScroll = oldBox && {
     top: oldBox.scrollTop,
@@ -121,15 +122,17 @@ function render(scrollToBottom = false) {
   const inputFocus =
     oldInput === document.activeElement ? [oldInput.selectionStart, oldInput.selectionEnd] : null
   const searchFocus = document.querySelector('.search input') === document.activeElement
+  const settingsScroll = document.querySelector('.settings-page')?.scrollTop
   sidebarScroll = document.querySelector('.chat-list')?.scrollTop ?? sidebarScroll
   const active = chats.find((chat) => chat.id === selected)
+  const activeProfile = profiles.find((profile) => profile.active)
+  const isInstagram = activeProfile?.provider === 'instagram'
   const showConversation = settingsOpen || bulkOpen || statusOpen || active
   app.innerHTML = `${appSession.license?.expired ? `<div class="license-warning" role="alert">Lisans süresi${appSession.license.expirationDate ? ` ${escapeHTML(appSession.license.expirationDate)} tarihinde` : ''} doldu. Uygulamayı kullanmaya devam edebilirsiniz; lisansınızı yenilemeniz gerekiyor.</div>` : ''}<section class="shell">
-    <nav class="profile-rail ${showConversation ? 'mobile-hidden' : ''}" aria-label="WhatsApp profilleri">
-      <div class="profile-list">${profiles.map((profile) => `<button class="profile-button ${profile.active ? 'active' : ''}" data-profile="${escapeHTML(profile.id)}" aria-label="${escapeHTML(profile.name)}${profile.unread ? `, ${profile.unread} okunmamış mesaj` : ''}" aria-current="${profile.active ? 'true' : 'false'}"><span>${escapeHTML(profileInitials(profile.name))}<img src="${API}/api/profiles/${encodeURIComponent(profile.id)}/avatar" alt="" onerror="this.remove()"></span>${profile.unread ? `<b class="profile-unread">${profile.unread > 99 ? '99+' : profile.unread}</b>` : ''}<i role="tooltip">${escapeHTML(profile.name)}</i></button>`).join('')}</div>
-      ${appSession.user.role === 'admin' ? '<button class="rail-add add-profile" title="Yeni profil ekle" aria-label="Yeni WhatsApp profili ekle">+</button>' : ''}
-      <button class="rail-bulk ${bulkOpen ? 'active' : ''}" title="Toplu mesaj" aria-label="Toplu mesaj">${icon('bulk')}</button>
-      <button class="rail-status ${statusOpen ? 'active' : ''}" title="Status planla" aria-label="Status planla">${icon('status')}</button>
+    <nav class="profile-rail ${showConversation ? 'mobile-hidden' : ''}" aria-label="Mesaj profilleri">
+       <div class="profile-list">${profiles.map((profile) => `<button class="profile-button ${profile.active ? 'active' : ''}" data-profile="${escapeHTML(profile.id)}" aria-label="${escapeHTML(profile.name)}${profile.unread ? `, ${profile.unread} okunmamış mesaj` : ''}" aria-current="${profile.active ? 'true' : 'false'}"><span>${escapeHTML(profileInitials(profile.name))}<img src="${API}/api/profiles/${encodeURIComponent(profile.id)}/avatar" alt="" onerror="this.remove()"></span>${profile.unread ? `<b class="profile-unread">${profile.unread > 99 ? '99+' : profile.unread}</b>` : ''}<i role="tooltip">${profile.provider === 'instagram' ? 'Instagram · ' : 'WhatsApp · '}${escapeHTML(profile.name)}</i></button>`).join('')}</div>
+       ${appSession.user.role === 'admin' ? '<button class="rail-add add-profile" title="Yeni profil ekle" aria-label="Yeni mesaj profili ekle">+</button>' : ''}
+       ${!isInstagram ? `<button class="rail-bulk ${bulkOpen ? 'active' : ''}" title="Toplu mesaj" aria-label="Toplu mesaj">${icon('bulk')}</button><button class="rail-status ${statusOpen ? 'active' : ''}" title="Status planla" aria-label="Status planla">${icon('status')}</button>` : ''}
       ${appSession.user.role === 'admin' ? `<button class="rail-settings ${settingsOpen ? 'active' : ''}" title="Ayarlar" aria-label="Ayarlar">${icon('settings')}</button>` : ''}
       <button class="rail-session-logout" title="Oturumu kapat" aria-label="${escapeHTML(appSession.user.username)} oturumunu kapat">${icon('logout')}</button>
     </nav>
@@ -164,6 +167,8 @@ function render(scrollToBottom = false) {
     input?.focus()
     input?.setSelectionRange(...inputFocus)
   }
+  if (settingsScroll != null)
+    document.querySelector('.settings-page')?.scrollTo({ top: settingsScroll })
 }
 
 let renderScheduled = false
@@ -173,9 +178,22 @@ function scheduleRender(scrollToBottom = false) {
   if (renderScheduled) return
   renderScheduled = true
   setTimeout(() => {
+    const focusedControl = document.activeElement
+    if (app.contains(focusedControl) && focusedControl.matches('input, textarea, select')) {
+      focusedControl.addEventListener(
+        'blur',
+        () => {
+          renderScheduled = false
+          scheduleRender()
+        },
+        { once: true },
+      )
+      return
+    }
     renderScheduled = false
-    render(renderWithScroll)
+    const scrollToBottom = renderWithScroll
     renderWithScroll = false
+    render(scrollToBottom)
   }, 150)
 }
 
@@ -485,6 +503,9 @@ function renderAppLogin() {
 }
 
 function conversation(chat) {
+  const profile = profiles.find((item) => item.active)
+  const capabilities = profile?.capabilities || {}
+  const maxLength = profile?.provider === 'instagram' ? 1000 : 2000
   const body =
     messageState === 'loading'
       ? `<div class="message-state"><span class="spinner"></span><p>Mesajlar yükleniyor…</p></div>`
@@ -494,14 +515,15 @@ function conversation(chat) {
           ? `<div class="day">MESAJLAR</div>${messages
               .map((message) => {
                 const sender = message.senderName || (message.outgoing ? 'Siz' : chat.name)
-                return `<div class="message-wrap ${message.outgoing ? 'outgoing' : ''}"><div class="bubble ${message.outgoing ? 'outgoing' : ''}" data-message="${escapeHTML(message.id)}"><button class="message-menu" data-actions="${escapeHTML(message.id)}" aria-label="Mesaj işlemleri">•••</button>${message.forwarded ? '<small class="forwarded">↪ İletildi</small>' : ''}${message.replyText ? `<span class="quoted">${escapeHTML(message.replyText)}</span>` : ''}<b class="sender color-${senderColor(sender)}">${escapeHTML(sender)}</b>${messageContent(message)}<time>${time(message.createdAt)}${message.outgoing ? messageTicks(message.status) : ''}</time>${message.reaction ? `<button class="reaction current" data-react="${escapeHTML(message.id)}" data-emoji="">${escapeHTML(message.reaction)} <small>1</small></button>` : ''}</div>${actionMessage === message.id ? `<div class="message-actions"><button data-reply="${escapeHTML(message.id)}">Yanıtla</button>${message.type === 'text' || !message.type ? `<button data-forward="${escapeHTML(message.id)}">İlet</button>` : ''}<span>${['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => `<button class="reaction" data-react="${escapeHTML(message.id)}" data-emoji="${emoji}">${emoji}</button>`).join('')}</span></div>` : ''}</div>`
+                 return `<div class="message-wrap ${message.outgoing ? 'outgoing' : ''}"><div class="bubble ${message.outgoing ? 'outgoing' : ''}" data-message="${escapeHTML(message.id)}"><button class="message-menu" data-actions="${escapeHTML(message.id)}" aria-label="Mesaj işlemleri">•••</button>${message.forwarded ? '<small class="forwarded">↪ İletildi</small>' : ''}${message.replyText ? `<span class="quoted">${escapeHTML(message.replyText)}</span>` : ''}<b class="sender color-${senderColor(sender)}">${escapeHTML(sender)}</b>${messageContent(message)}<time>${time(message.createdAt)}${message.outgoing ? messageTicks(message.status) : ''}</time>${message.reaction ? `<button class="reaction current" data-react="${escapeHTML(message.id)}" data-emoji="">${escapeHTML(message.reaction)} <small>1</small></button>` : ''}</div>${actionMessage === message.id ? `<div class="message-actions">${capabilities.reply ? `<button data-reply="${escapeHTML(message.id)}">Yanıtla</button>` : ''}${capabilities.forward && (message.type === 'text' || !message.type) ? `<button data-forward="${escapeHTML(message.id)}">İlet</button>` : ''}${capabilities.reaction ? `<span>${['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => `<button class="reaction" data-react="${escapeHTML(message.id)}" data-emoji="${emoji}">${emoji}</button>`).join('')}</span>` : ''}</div>` : ''}</div>`
               })
               .join('')}`
           : `<div class="message-state empty-chat"><b>Henüz mesaj yok</b><p>İlk mesajı yazarak konuşmayı başlat.</p></div>`
   const typing = remoteTyping?.chatId === chat.id
   return `<header class="person"><button class="back" aria-label="Sohbetlere dön" title="Sohbetlere dön">${icon('back')}</button><span class="avatar">${escapeHTML(chat.avatar || '?')}</span><span><strong>${escapeHTML(chat.name)}</strong><small class="${typing ? 'typing-status' : ''}"><i class="presence ${typing || chat.online ? 'online' : ''}"></i>${typing ? `${escapeHTML(remoteTyping.name ? `${remoteTyping.name} ` : '')}yazıyor<span class="typing-dots"><i></i><i></i><i></i></span>` : chat.online ? 'Çevrimiçi' : 'WhatsApp'}</small></span></header>
-    <div class="messages ${replyTo ? 'replying' : ''}" aria-live="polite">${body}</div><button class="scroll-bottom" type="button" aria-label="En son mesaja git">↓</button>
-    ${forwarding ? `<div class="forward-dialog" role="dialog" aria-label="Mesajı ilet"><header><b>Mesajı ilet</b><button class="cancel-forward">×</button></header>${chats.map((item) => `<button data-forward-chat="${escapeHTML(item.id)}"><span class="avatar">${escapeHTML(item.avatar)}</span><b>${escapeHTML(item.name)}</b></button>`).join('')}</div>` : ''}<form class="composer">${replyTo ? `<div class="reply-preview"><span><b>${escapeHTML(replyTo.senderName)}</b><small>${escapeHTML(replyTo.text)}</small></span><button type="button" class="cancel-reply">×</button></div>` : ''}<div class="emoji-wrap"><button class="emoji-toggle" type="button" aria-label="Emoji ekle" title="Emoji ekle" aria-expanded="${emojiOpen}" ${messageState !== 'ready' || sending ? 'disabled' : ''}>${icon('emoji')}</button>${emojiOpen ? `<div class="emoji-picker" role="dialog" aria-label="Emoji seç">${emojis.map((emoji) => `<button type="button" data-emoji="${emoji}" aria-label="${emoji}">${emoji}</button>`).join('')}</div>` : ''}</div><div class="compose-field"><textarea name="text" rows="1" autocomplete="off" maxlength="2000" placeholder="Bir mesaj yazın" aria-label="Mesaj" ${messageState !== 'ready' || sending ? 'disabled' : ''}>${escapeHTML(draft)}</textarea>${messageError && messageState === 'ready' ? `<small class="send-error" role="alert">${escapeHTML(messageError)}</small>` : ''}</div><button class="send" aria-label="Gönder" title="Gönder" ${messageState !== 'ready' || sending || !draft.trim() ? 'disabled' : ''}>${sending ? '<span class="mini-spinner"></span>' : icon('send')}</button></form>`
+     <div class="messages ${replyTo ? 'replying' : ''}" aria-live="polite">${body}</div><button class="scroll-bottom" type="button" aria-label="En son mesaja git">↓</button>
+    <dialog class="image-lightbox" aria-label="Görsel önizleme"><button type="button" aria-label="Görseli kapat">×</button><img alt=""></dialog>
+     ${forwarding ? `<div class="forward-dialog" role="dialog" aria-label="Mesajı ilet"><header><b>Mesajı ilet</b><button class="cancel-forward">×</button></header>${chats.map((item) => `<button data-forward-chat="${escapeHTML(item.id)}"><span class="avatar">${escapeHTML(item.avatar)}</span><b>${escapeHTML(item.name)}</b></button>`).join('')}</div>` : ''}<form class="composer">${replyTo ? `<div class="reply-preview"><span><b>${escapeHTML(replyTo.senderName)}</b><small>${escapeHTML(replyTo.text)}</small></span><button type="button" class="cancel-reply">×</button></div>` : ''}<div class="emoji-wrap"><button class="emoji-toggle" type="button" aria-label="Emoji ekle" title="Emoji ekle" aria-expanded="${emojiOpen}" ${messageState !== 'ready' || sending ? 'disabled' : ''}>${icon('emoji')}</button>${emojiOpen ? `<div class="emoji-picker" role="dialog" aria-label="Emoji seç">${emojis.map((emoji) => `<button type="button" data-emoji="${emoji}" aria-label="${emoji}">${emoji}</button>`).join('')}</div>` : ''}</div><div class="compose-field"><textarea name="text" rows="1" autocomplete="off" maxlength="${maxLength}" placeholder="Bir mesaj yazın" aria-label="Mesaj" ${messageState !== 'ready' || sending ? 'disabled' : ''}>${escapeHTML(draft)}</textarea>${messageError && messageState === 'ready' ? `<small class="send-error" role="alert">${escapeHTML(messageError)}</small>` : ''}</div><button class="send" aria-label="Gönder" title="Gönder" ${messageState !== 'ready' || sending || !draft.trim() ? 'disabled' : ''}>${sending ? '<span class="mini-spinner"></span>' : icon('send')}</button></form>`
 }
 
 function bind(scrollToBottom, oldScroll) {
@@ -523,6 +545,32 @@ function bind(scrollToBottom, oldScroll) {
   document
     .querySelectorAll('[data-chat]')
     .forEach((button) => (button.onclick = () => selectChat(button.dataset.chat)))
+  const lightbox = document.querySelector('.image-lightbox')
+  if (lightboxImage && lightbox) {
+    const image = lightbox.querySelector('img')
+    image.src = lightboxImage.src
+    image.alt = lightboxImage.alt
+    lightbox.showModal()
+  }
+  document.querySelectorAll('.message-image-open').forEach((button) =>
+    button.addEventListener('click', () => {
+      const source = button.querySelector('img'),
+        image = lightbox.querySelector('img')
+      lightboxImage = { src: source.currentSrc || source.src, alt: source.alt }
+      image.src = lightboxImage.src
+      image.alt = lightboxImage.alt
+      lightbox.showModal()
+    }),
+  )
+  const closeLightbox = () => {
+    lightboxImage = null
+    lightbox.close()
+  }
+  lightbox?.querySelector('button').addEventListener('click', closeLightbox)
+  lightbox?.addEventListener('click', (event) => {
+    if (event.target === lightbox) closeLightbox()
+  })
+  lightbox?.addEventListener('close', () => (lightboxImage = null))
   const search = document.querySelector('.search input')
   const filterChats = () =>
     document.querySelectorAll('.chat').forEach((button) => {
@@ -799,6 +847,7 @@ async function selectChat(id) {
   settingsOpen = false
   statusOpen = false
   bulkReport = null
+  lightboxImage = null
   if (selected !== id) setTyping(false)
   const requestID = ++selectionRequest
   selected = id
@@ -968,7 +1017,7 @@ async function syncProfile(id) {
   try {
     await request(`/api/profiles/${encodeURIComponent(id)}/sync-history`, { method: 'POST' })
     setTimeout(() => {
-      if (syncingProfiles.delete(id)) render()
+      if (syncingProfiles.delete(id)) scheduleRender()
     }, 11 * 60 * 1000)
   } catch (error) {
     finishSyncProfile(id, error.message)
@@ -978,7 +1027,7 @@ async function syncProfile(id) {
 function finishSyncProfile(profileId, error) {
   if (!syncingProfiles.has(profileId)) return
   syncingProfiles.delete(profileId)
-  render()
+  scheduleRender()
   notify(
     error ? `Geçmiş eşitlenemedi: ${error}` : 'Kişiler ve eksik mesaj geçmişi eşitlendi',
     error ? 'error' : 'success',
@@ -1237,15 +1286,31 @@ async function switchProfile(id) {
 }
 
 async function addProfile() {
-  if (
-    !confirm(
-      'Yeni bir WhatsApp profili eklemek için QR eşleştirme ekranına geçilsin mi? Mevcut profiller korunur.',
-    )
-  )
-    return
-  await resetForProfile()
+  const provider = prompt('Profil türü: whatsapp veya instagram', 'instagram')?.trim().toLowerCase()
+  if (!['whatsapp', 'instagram'].includes(provider)) return
   try {
-    await request('/api/profiles', { method: 'POST' })
+    if (provider === 'whatsapp') {
+      if (!confirm('WhatsApp QR eşleştirme ekranına geçilsin mi? Mevcut profiller korunur.')) return
+      await resetForProfile()
+      await request('/api/profiles', { method: 'POST' })
+      return
+    }
+    const session = await request('/api/instagram/connect', { method: 'POST' })
+    if (window.krioDesktop?.openExternal) await window.krioDesktop.openExternal(session.authorize_url)
+    else window.open(session.authorize_url, '_blank', 'noopener,noreferrer')
+    for (let attempt = 0; attempt < 60; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const status = await request(`/api/instagram/oauth/${encodeURIComponent(session.session_id)}`)
+      if (status.status === 'complete') {
+        await loadProfiles()
+        const profile = profiles.find((item) => item.accountId === status.account_id)
+        if (profile && !profiles.some((item) => item.active)) await switchProfile(profile.id)
+        notify(`${status.username || 'Instagram'} bağlandı`, 'success')
+        return
+      }
+      if (status.status === 'failed' || status.status === 'expired') throw new Error(status.error || 'Instagram bağlantısı başarısız')
+    }
+    throw new Error('Instagram bağlantısı zaman aşımına uğradı')
   } catch (error) {
     notify(`Profil eklenemedi: ${error.message}`, 'error')
   }
@@ -1263,13 +1328,19 @@ function connectEvents() {
     }
     if (event.type === 'profiles') {
       profiles = event.payload
-      if (!statusOpen || !document.querySelector('.status-form [name="media"]')?.files.length)
+      if (
+        !syncingProfiles.size &&
+        (!statusOpen || !document.querySelector('.status-form [name="media"]')?.files.length)
+      )
         scheduleRender()
     }
     if (event.type === 'chats') {
       chats = event.payload
       chatsLoaded = true
-      if (!statusOpen || !document.querySelector('.status-form [name="media"]')?.files.length)
+      if (
+        !syncingProfiles.size &&
+        (!statusOpen || !document.querySelector('.status-form [name="media"]')?.files.length)
+      )
         scheduleRender()
     }
     if (event.type === 'message') {
@@ -1454,7 +1525,7 @@ async function resetApp() {
 async function bootstrapWhatsApp() {
   whatsAppAuth = await request('/api/auth')
   await loadProfiles()
-  if (whatsAppAuth.state === 'connected') await loadChats()
+  if (whatsAppAuth.state === 'connected' || profiles.some((profile) => profile.active && profile.provider === 'instagram')) await loadChats()
   else render()
   connectEvents()
 }

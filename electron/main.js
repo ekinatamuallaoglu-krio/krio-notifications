@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const { spawn } = require('node:child_process')
 const path = require('node:path')
+const { URL } = require('node:url')
 
 const port = process.env.PORT || '18080'
 let backend
@@ -53,6 +54,12 @@ ipcMain.handle('set-auto-start', (_, enabled) => {
 })
 
 ipcMain.handle('get-auto-start', () => app.getLoginItemSettings().openAtLogin)
+
+ipcMain.handle('open-external', (_, value) => {
+  const parsed = new URL(value)
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'itsme.krio.tr' || !parsed.pathname.startsWith('/api/instagram/')) throw new Error('Geçersiz OAuth adresi')
+  return require('electron').shell.openExternal(parsed.toString())
+})
 
 app.on('before-quit', () => {
   quitting = true

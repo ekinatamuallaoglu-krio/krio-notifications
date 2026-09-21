@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"krio-chat/backend/internal/store"
 )
 
 func (s *server) getProfiles(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +31,51 @@ func (s *server) addProfile(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *server) instagramConnect(w http.ResponseWriter, r *http.Request) {
+	if s.wa.instagram == nil {
+		writeError(w, http.StatusServiceUnavailable, "Instagram relay hazır değil")
+		return
+	}
+	result, err := s.wa.instagram.createSession(r.Context())
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, result)
+}
+
+func (s *server) instagramOAuthStatus(w http.ResponseWriter, r *http.Request) {
+	result, err := s.wa.instagram.session(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	if result["status"] == "complete" {
+		_ = s.wa.instagram.syncProfiles(r.Context())
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (s *server) activateProfile(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.PathValue("id"), "instagram:") {
+		if s.wa.instagram == nil {
+			writeError(w, http.StatusServiceUnavailable, "Instagram relay hazır değil")
+			return
+		}
+		if err := s.wa.instagram.activate(r.PathValue("id")); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		s.wa.Lock()
+		s.wa.externalActive = r.PathValue("id")
+		s.wa.Unlock()
+		chats, _ := s.wa.instagram.chats(r.Context())
+		writeJSON(w, http.StatusOK, struct {
+			Profiles []Profile `json:"profiles"`
+			Chats    []Chat    `json:"chats"`
+		}{s.wa.profiles(), chats})
+		return
+	}
 	if err := s.wa.switchProfile(r.Context(), r.PathValue("id")); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -96,6 +142,20 @@ func (s *server) renameProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) logoutProfile(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.PathValue("id"), "instagram:") {
+		if s.wa.instagram == nil || store.DeleteInstagramProfile(s.wa.db, r.PathValue("id")) != nil {
+			writeError(w, http.StatusInternalServerError, "Instagram profili silinemedi")
+			return
+		}
+		s.wa.instagram.clearActive(r.PathValue("id"))
+		s.wa.Lock()
+		if s.wa.externalActive == r.PathValue("id") {
+			s.wa.externalActive = ""
+		}
+		s.wa.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if err := s.wa.logoutProfile(r.Context(), r.PathValue("id")); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

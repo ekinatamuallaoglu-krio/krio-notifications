@@ -145,6 +145,9 @@ func (w *whatsApp) profiles() []Profile {
 		return []Profile{}
 	}
 	active := w.profileID()
+	w.RLock()
+	externalActive := w.externalActive
+	w.RUnlock()
 	preferences := profilePreferences(w.db)
 	unreadCounts := profileUnreadCounts(w.db)
 	result := make([]Profile, 0, len(devices))
@@ -169,7 +172,10 @@ func (w *whatsApp) profiles() []Profile {
 		if preference.TypingMin == 0 {
 			preference.TypingMin, preference.TypingMax, preference.DelayMin, preference.DelayMax = 100, 200, 1000, 5000
 		}
-		result = append(result, Profile{ID: id, Name: displayName, WhatsAppName: name, Nickname: nickname, Sound: preference.Sound, Volume: preference.Volume, TypingMin: preference.TypingMin, TypingMax: preference.TypingMax, DelayMin: preference.DelayMin, DelayMax: preference.DelayMax, Active: id == active, Unread: unreadCounts[id], WorkEnabled: preference.WorkEnabled != 0, WorkDays: preference.WorkDays, WorkStart: preference.WorkStart, WorkEnd: preference.WorkEnd})
+		result = append(result, Profile{ID: id, Provider: "whatsapp", Name: displayName, WhatsAppName: name, Nickname: nickname, Sound: preference.Sound, Volume: preference.Volume, TypingMin: preference.TypingMin, TypingMax: preference.TypingMax, DelayMin: preference.DelayMin, DelayMax: preference.DelayMax, Active: externalActive == "" && id == active, Unread: unreadCounts[id], WorkEnabled: preference.WorkEnabled != 0, WorkDays: preference.WorkDays, WorkStart: preference.WorkStart, WorkEnd: preference.WorkEnd, Capabilities: map[string]bool{"sendText": true, "reply": true, "reaction": true, "typing": true, "presence": true, "forward": true, "bulk": true, "status": true, "historySync": true}})
+	}
+	if w.instagram != nil {
+		result = append(result, w.instagram.profiles()...)
 	}
 	return result
 }
@@ -227,7 +233,13 @@ func (w *whatsApp) switchProfile(ctx context.Context, id string) error {
 	if device == nil {
 		return errors.New("profil bulunamadı")
 	}
-	return w.activateDevice(device)
+	if err := w.activateDevice(device); err != nil {
+		return err
+	}
+	w.Lock()
+	w.externalActive = ""
+	w.Unlock()
+	return nil
 }
 
 func (w *whatsApp) addProfile() { w.startPairing() }

@@ -154,6 +154,15 @@ func (s *server) activeProfileID() string {
 	return ""
 }
 
+func (s *server) profileCapability(profileID, capability string) bool {
+	for _, profile := range s.wa.profiles() {
+		if profile.ID == profileID {
+			return profile.Capabilities[capability]
+		}
+	}
+	return false
+}
+
 func (s *server) resetApp(w http.ResponseWriter, r *http.Request) {
 	if err := s.wa.logout(r.Context()); err != nil {
 		writeError(w, 500, "WhatsApp bağlantısı kesilemedi: "+err.Error())

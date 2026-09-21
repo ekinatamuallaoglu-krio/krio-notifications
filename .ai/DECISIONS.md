@@ -6,6 +6,13 @@
 - Keep profile switching low-memory: load chat summaries only, lazily load the opened chat's latest 200 messages, and avoid contact/group network lookups on the switch path.
 - Store app-local profile nicknames in SQLite.
 
+## Instagram profiles
+
+- Represent Instagram accounts with namespaced IDs: `instagram:<account-id>`.
+- Keep Meta App Secret and Instagram access tokens in `itsme.krio.tr`; local desktop never receives either secret.
+- Use relay OAuth and outbound HTTPS polling. Do not expose local Electron backend as Meta callback or webhook target.
+- Expose Instagram capabilities explicitly. Reject unsupported WhatsApp actions server-side instead of relying on UI hiding.
+
 ## Message actions
 
 - Use WhatsApp quoted-message context for replies and reaction protocol messages for reactions/removal.

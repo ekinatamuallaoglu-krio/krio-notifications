@@ -74,6 +74,7 @@ func OpenAppStore(database string) (*sql.DB, error) {
 		`ALTER TABLE krio_profile_names ADD COLUMN work_days TEXT NOT NULL DEFAULT '1,2,3,4,5'`,
 		`ALTER TABLE krio_profile_names ADD COLUMN work_start TEXT NOT NULL DEFAULT '09:00'`,
 		`ALTER TABLE krio_profile_names ADD COLUMN work_end TEXT NOT NULL DEFAULT '18:00'`,
+		`CREATE TABLE IF NOT EXISTS krio_instagram_profiles (profile_id TEXT PRIMARY KEY, account_id TEXT NOT NULL UNIQUE, username TEXT NOT NULL DEFAULT '', session_key TEXT NOT NULL DEFAULT '', cursor TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0)`,
 	} {
 		_, _ = db.Exec(statement)
 	}

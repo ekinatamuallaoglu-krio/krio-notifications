@@ -33,6 +33,10 @@ func (s *server) postStatusPost(w http.ResponseWriter, r *http.Request) {
 	defer r.MultipartForm.RemoveAll()
 	user := currentUser(r.Context())
 	profileID, kind, text := strings.TrimSpace(r.FormValue("profileId")), r.FormValue("kind"), strings.TrimSpace(r.FormValue("text"))
+	if !s.profileCapability(profileID, "status") {
+		writeError(w, http.StatusConflict, "profil status desteği sunmuyor")
+		return
+	}
 	if !canProfile(user, profileID) {
 		writeError(w, http.StatusForbidden, "profil erişiminiz yok")
 		return

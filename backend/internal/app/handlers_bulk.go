@@ -61,6 +61,10 @@ func (s *server) deleteBulkTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) bulkRecipients(w http.ResponseWriter, r *http.Request) {
+	if !s.profileCapability(r.PathValue("profileID"), "bulk") {
+		writeError(w, http.StatusConflict, "profil toplu gönderimi desteklemiyor")
+		return
+	}
 	chats, err := s.wa.bulkRecipients(r.PathValue("profileID"))
 	if err != nil {
 		writeError(w, 500, err.Error())
@@ -83,6 +87,10 @@ func (s *server) sendBulk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := currentUser(r.Context())
+	if !s.profileCapability(body.ProfileID, "bulk") {
+		writeError(w, http.StatusConflict, "profil toplu gönderimi desteklemiyor")
+		return
+	}
 	if !canProfile(user, body.ProfileID) || !canTemplate(user, body.TemplateID) {
 		writeError(w, http.StatusForbidden, "profil veya şablon erişiminiz yok")
 		return

@@ -83,6 +83,59 @@
   width: 180px;
   background: transparent;
 }
+.message-image-open {
+  display: block;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: zoom-in;
+}
+.message-image-open:focus-visible {
+  outline: 3px solid #176b87;
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+.image-lightbox {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: clamp(18px, 5vw, 60px);
+}
+.image-lightbox[open] {
+  display: grid;
+  place-items: center;
+}
+.image-lightbox::backdrop {
+  background: #111d;
+  backdrop-filter: blur(5px);
+}
+.image-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 24px 80px #0008;
+  object-fit: contain;
+}
+.image-lightbox button {
+  position: fixed;
+  z-index: 1;
+  top: 18px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #fff5;
+  border-radius: 50%;
+  background: #111b;
+  color: white;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
 .bubble audio {
   display: block;
   width: min(320px, 70vw);

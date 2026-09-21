@@ -21,6 +21,9 @@ func Run() {
 	}
 	defer whatsApp.close()
 
+	instagram := newInstagram(whatsApp.db, setting(whatsApp.db, "license_key"))
+	whatsApp.instagram = instagram
+	_ = instagram.syncProfiles(ctx)
 	server := &server{wa: whatsApp, checker: license.DefaultChecker()}
 	whatsApp.connectAll()
 	whatsApp.startStatusScheduler()
