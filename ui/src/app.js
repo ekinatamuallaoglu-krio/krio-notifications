@@ -169,6 +169,7 @@ function render(scrollToBottom = false) {
 let renderScheduled = false
 let renderWithScroll = false
 function scheduleRender(scrollToBottom = false) {
+  if (settingsOpen || bulkOpen) return
   renderWithScroll = renderWithScroll || scrollToBottom
   if (renderScheduled) return
   renderScheduled = true
