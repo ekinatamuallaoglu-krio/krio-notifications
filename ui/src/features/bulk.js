@@ -54,7 +54,7 @@ export function parseBulkSheet(sheet, variables, date1904 = false) {
     expected.some((name, index) => headers[index] !== name)
   )
     throw new Error(`Başlıklar şu sırada olmalı: ${expected.join(', ')}`)
-  if (!data.length || data.length > 50) throw new Error('Excel dosyasında 1-50 veri satırı olmalı.')
+  if (!data.length || data.length > 300) throw new Error('Excel dosyasında 1-300 veri satırı olmalı.')
   return data.map((cells, index) => {
     if (
       cells.length > expected.length ||

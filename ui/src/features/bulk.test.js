@@ -89,3 +89,13 @@ test('uses the 1904 workbook date system', () => {
   assert.equal(row.values.date, '02.01.1904')
   assert.equal(row.values.number, '1')
 })
+
+test('accepts 300 rows and rejects 301 rows', () => {
+  const rows = Array.from({ length: 300 }, (_, index) => [`9055511${String(index).padStart(6, '0')}`])
+
+  assert.equal(parseBulkSheet(XLSX.utils.aoa_to_sheet([['recipient'], ...rows]), []).length, 300)
+  assert.throws(
+    () => parseBulkSheet(XLSX.utils.aoa_to_sheet([['recipient'], ...rows, ['905551112233']]), []),
+    /1-300 veri satırı/,
+  )
+})

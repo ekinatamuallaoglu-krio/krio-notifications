@@ -339,7 +339,7 @@ function enhanceBulkForm() {
     search.previousElementSibling.querySelector('b').textContent = variables ? '4' : '3'
   const mode = document.createElement('div')
   mode.className = 'bulk-mode-section'
-  mode.innerHTML = `<div class="bulk-step"><b>2</b><span><strong>Gönderim yöntemini seç</strong><small>Excel dosyası veya kişi listesinden manuel seçim kullan.</small></span></div><div class="bulk-mode" role="radiogroup" aria-label="Gönderim yöntemi"><label><input type="radio" name="mode" value="excel" ${bulkMode === 'excel' ? 'checked' : ''}><span><b>Excel ile gönderim</b><small>Dosyayı yükle, önizle ve gönder.</small></span></label><label><input type="radio" name="mode" value="manual" ${bulkMode === 'manual' ? 'checked' : ''}><span><b>Manuel gönderim</b><small>Kişileri ekrandan seç.</small></span></label></div><div class="excel-panel"><div class="excel-actions"><button type="button" class="download-excel">${icon('bulk')} Excel şablonunu indir</button><label class="excel-upload"><b>Excel dosyasını yükle</b><small>.xlsx · en fazla 1 MB ve 50 satır</small><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div>${bulkFileError ? `<p class="excel-error" role="alert">${escapeHTML(bulkFileError)}</p>` : ''}${excelPreview()}</div>`
+  mode.innerHTML = `<div class="bulk-step"><b>2</b><span><strong>Gönderim yöntemini seç</strong><small>Excel dosyası veya kişi listesinden manuel seçim kullan.</small></span></div><div class="bulk-mode" role="radiogroup" aria-label="Gönderim yöntemi"><label><input type="radio" name="mode" value="excel" ${bulkMode === 'excel' ? 'checked' : ''}><span><b>Excel ile gönderim</b><small>Dosyayı yükle, önizle ve gönder.</small></span></label><label><input type="radio" name="mode" value="manual" ${bulkMode === 'manual' ? 'checked' : ''}><span><b>Manuel gönderim</b><small>Kişileri ekrandan seç.</small></span></label></div><div class="excel-panel"><div class="excel-actions"><button type="button" class="download-excel">${icon('bulk')} Excel şablonunu indir</button><label class="excel-upload"><b>Excel dosyasını yükle</b><small>.xlsx · en fazla 1 MB ve 300 satır</small><input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div>${bulkFileError ? `<p class="excel-error" role="alert">${escapeHTML(bulkFileError)}</p>` : ''}${excelPreview()}</div>`
   fields.after(mode)
   form.classList.toggle('manual-mode', bulkMode === 'manual')
   form.querySelectorAll('[name="mode"]').forEach(
@@ -453,7 +453,7 @@ async function readBulkExcel(file) {
       throw new Error('1 MB’den küçük bir .xlsx dosyası seçin.')
     const workbook = XLSX.read(await file.arrayBuffer(), {
         type: 'array',
-        sheetRows: 52,
+        sheetRows: 302,
         cellDates: false,
         cellNF: true,
       }),

@@ -78,8 +78,8 @@ func (s *server) sendBulk(w http.ResponseWriter, r *http.Request) {
 		Rows       []bulkSendRow     `json:"rows"`
 		Mode       string            `json:"mode"`
 	}
-	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 256<<10)).Decode(&body) != nil || len(body.Recipients)+len(body.Rows) < 1 || len(body.Recipients)+len(body.Rows) > 50 {
-		writeError(w, 400, "1-50 alıcı seçilmeli")
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 256<<10)).Decode(&body) != nil || len(body.Recipients)+len(body.Rows) < 1 || len(body.Recipients)+len(body.Rows) > 300 {
+		writeError(w, 400, "1-300 alıcı seçilmeli")
 		return
 	}
 	user := currentUser(r.Context())
