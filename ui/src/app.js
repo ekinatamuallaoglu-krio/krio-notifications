@@ -118,6 +118,12 @@ function render(scrollToBottom = false) {
     nearBottom: oldBox.scrollHeight - oldBox.scrollTop - oldBox.clientHeight < 80,
   }
   const oldInput = document.querySelector('.composer textarea')
+  const oldPageScroll = ['.settings-page', '.bulk-page', '.status-page']
+    .map((selector) => {
+      const element = document.querySelector(selector)
+      return element && [selector, element.scrollTop]
+    })
+    .filter(Boolean)
   const inputFocus =
     oldInput === document.activeElement ? [oldInput.selectionStart, oldInput.selectionEnd] : null
   const focusedField = document.activeElement?.matches('input, textarea, select')
@@ -168,6 +174,10 @@ function render(scrollToBottom = false) {
   </section>`
   if (statusOpen) document.querySelector('.conversation').innerHTML = statusPage()
   bind(scrollToBottom, oldScroll)
+  oldPageScroll.forEach(([selector, scrollTop]) => {
+    const element = document.querySelector(selector)
+    if (element) element.scrollTop = scrollTop
+  })
   if (searchFocus) document.querySelector('.search input')?.focus()
   if (inputFocus) {
     const input = document.querySelector('.composer textarea')
@@ -194,7 +204,7 @@ function render(scrollToBottom = false) {
 let renderScheduled = false
 let renderWithScroll = false
 function scheduleRender(scrollToBottom = false) {
-  if (settingsOpen || bulkOpen) return
+  if (settingsOpen || bulkOpen || statusOpen) return
   renderWithScroll = renderWithScroll || scrollToBottom
   if (renderScheduled) return
   renderScheduled = true
@@ -674,12 +684,9 @@ function bind(scrollToBottom, oldScroll) {
       button.addEventListener('click', () => logoutProfile(button.dataset.removeProfile)),
     )
   document.querySelectorAll('[data-sync-history]').forEach((button) => {
-    if (syncingProfiles.has(button.dataset.syncHistory)) {
-      button.disabled = true
-      button.classList.add('syncing')
-      button.innerHTML =
-        '<span><b>Senkronize ediliyor</b><small>WhatsApp’ınızı açık tutun</small></span><i><b></b></i>'
-    } else button.onclick = () => syncProfile(button.dataset.syncHistory)
+    updateSyncButton(button)
+    if (!syncingProfiles.has(button.dataset.syncHistory))
+      button.onclick = () => syncProfile(button.dataset.syncHistory)
   })
   document.querySelector('.back')?.addEventListener('click', () => {
     setTyping(false)
@@ -987,14 +994,37 @@ async function saveNickname(event) {
   }
 }
 
+function updateSyncButton(button) {
+  if (syncingProfiles.has(button.dataset.syncHistory)) {
+    button.dataset.syncLabel ||= button.innerHTML
+    button.disabled = true
+    button.classList.add('syncing')
+    button.innerHTML =
+      '<span><b>Senkronize ediliyor</b><small>WhatsApp’ınızı açık tutun</small></span><i><b></b></i>'
+  } else {
+    button.disabled = false
+    button.classList.remove('syncing')
+    if (button.dataset.syncLabel) button.innerHTML = button.dataset.syncLabel
+  }
+}
+
+function updateSyncButtonInPlace(id) {
+  const button = document.querySelector(`[data-sync-history="${CSS.escape(id)}"]`)
+  if (button) updateSyncButton(button)
+}
+
 async function syncProfile(id) {
   if (syncingProfiles.has(id)) return
   syncingProfiles.add(id)
-  render()
+  if (settingsOpen) updateSyncButtonInPlace(id)
+  else render()
   try {
     await request(`/api/profiles/${encodeURIComponent(id)}/sync-history`, { method: 'POST' })
     setTimeout(() => {
-      if (syncingProfiles.delete(id)) render()
+      if (syncingProfiles.delete(id)) {
+        if (settingsOpen) updateSyncButtonInPlace(id)
+        else render()
+      }
     }, 11 * 60 * 1000)
   } catch (error) {
     finishSyncProfile(id, error.message)
@@ -1004,7 +1034,8 @@ async function syncProfile(id) {
 function finishSyncProfile(profileId, error) {
   if (!syncingProfiles.has(profileId)) return
   syncingProfiles.delete(profileId)
-  render()
+  if (settingsOpen) updateSyncButtonInPlace(profileId)
+  else render()
   notify(
     error ? `Geçmiş eşitlenemedi: ${error}` : 'Kişiler ve eksik mesaj geçmişi eşitlendi',
     error ? 'error' : 'success',
