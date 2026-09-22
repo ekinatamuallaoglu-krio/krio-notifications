@@ -1023,7 +1023,7 @@ async function syncProfile(id) {
     setTimeout(() => {
       if (syncingProfiles.delete(id)) {
         if (settingsOpen) updateSyncButtonInPlace(id)
-        else render()
+        else if (!bulkOpen && !statusOpen) render()
       }
     }, 11 * 60 * 1000)
   } catch (error) {
@@ -1035,7 +1035,7 @@ function finishSyncProfile(profileId, error) {
   if (!syncingProfiles.has(profileId)) return
   syncingProfiles.delete(profileId)
   if (settingsOpen) updateSyncButtonInPlace(profileId)
-  else render()
+  else if (!bulkOpen && !statusOpen) render()
   notify(
     error ? `Geçmiş eşitlenemedi: ${error}` : 'Kişiler ve eksik mesaj geçmişi eşitlendi',
     error ? 'error' : 'success',
