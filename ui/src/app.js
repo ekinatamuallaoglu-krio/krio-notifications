@@ -391,14 +391,26 @@ function enhanceBulkForm() {
     readBulkExcel(event.target.files[0])
   const history = document.createElement('section')
   history.className = 'bulk-history'
-  history.innerHTML = `<div class="section-title"><span><small>GÖNDERİM GEÇMİŞİ</small><h2>Gönderim raporları</h2></span><button type="button" class="export-all-reports" ${bulkReports.length ? '' : 'disabled'}>Tümünü Excel’e aktar</button></div>${bulkReports.length ? `<div class="bulk-report-list">${bulkReports.map((report) => `<button type="button" data-report="${report.id}"><span><b>${escapeHTML(report.templateName)}</b><small>${new Date(report.startedAt).toLocaleString('tr-TR')} · ${escapeHTML(report.mode === 'manual' ? 'Manuel' : 'Excel')}</small></span><span><b>${report.success}/${report.total}</b><small class="report-${report.status}">${report.status === 'queued' ? 'Kuyrukta' : report.status === 'running' ? 'Sürüyor' : report.failed ? `${report.failed} başarısız` : 'Tamamlandı'}</small></span></button>`).join('')}</div>` : '<p class="bulk-empty">Henüz gönderim raporu yok.</p>'}`
+  history.innerHTML = bulkHistoryContent()
   layout.append(history)
+  bindBulkHistory(history)
+  if (bulkReport)
+    document.querySelector('.bulk-page').insertAdjacentHTML('beforeend', bulkReportDialog())
+  bindBulkReportDialog()
+}
+
+function bulkHistoryContent() {
+  return `<div class="section-title"><span><small>GÖNDERİM GEÇMİŞİ</small><h2>Gönderim raporları</h2></span><button type="button" class="export-all-reports" ${bulkReports.length ? '' : 'disabled'}>Tümünü Excel’e aktar</button></div>${bulkReports.length ? `<div class="bulk-report-list">${bulkReports.map((report) => `<button type="button" data-report="${report.id}"><span><b>${escapeHTML(report.templateName)}</b><small>${new Date(report.startedAt).toLocaleString('tr-TR')} · ${escapeHTML(report.mode === 'manual' ? 'Manuel' : 'Excel')}</small></span><span><b>${report.success}/${report.total}</b><small class="report-${report.status}">${report.status === 'queued' ? 'Kuyrukta' : report.status === 'running' ? 'Sürüyor' : report.failed ? `${report.failed} başarısız` : 'Tamamlandı'}</small></span></button>`).join('')}</div>` : '<p class="bulk-empty">Henüz gönderim raporu yok.</p>'}`
+}
+
+function bindBulkHistory(history) {
   history
     .querySelectorAll('[data-report]')
     .forEach((button) => (button.onclick = () => openBulkReport(button.dataset.report)))
   history.querySelector('.export-all-reports').onclick = exportAllBulkReports
-  if (bulkReport)
-    document.querySelector('.bulk-page').insertAdjacentHTML('beforeend', bulkReportDialog())
+}
+
+function bindBulkReportDialog() {
   document.querySelector('.close-report')?.addEventListener('click', () => {
     bulkReport = null
     render()
@@ -408,6 +420,28 @@ function enhanceBulkForm() {
     ?.addEventListener('click', () =>
       exportReports([bulkReport], `krio-gonderim-raporu-${bulkReport.id}.xlsx`),
     )
+}
+
+function updateBulkReportsInPlace() {
+  if (bulkSection === 'reports') {
+    const history = document.querySelector('.bulk-history')
+    if (history) {
+      history.innerHTML = bulkHistoryContent()
+      bindBulkHistory(history)
+    }
+  }
+  const dialog = document.querySelector('.bulk-report-dialog')
+  if (!bulkReport || !dialog) return
+  const table = dialog.querySelector('.report-table'),
+    scrollTop = table?.scrollTop || 0,
+    scrollLeft = table?.scrollLeft || 0
+  dialog.outerHTML = bulkReportDialog()
+  bindBulkReportDialog()
+  const nextTable = document.querySelector('.bulk-report-dialog .report-table')
+  if (nextTable) {
+    nextTable.scrollTop = scrollTop
+    nextTable.scrollLeft = scrollLeft
+  }
 }
 
 function bulkReportDialog() {
@@ -435,7 +469,7 @@ function scheduleBulkRefresh() {
     try {
       bulkReports = await request('/api/bulk/reports')
       if (bulkReport) bulkReport = await request(`/api/bulk/reports/${bulkReport.id}`)
-      render()
+      updateBulkReportsInPlace()
     } catch {
     } finally {
       scheduleBulkRefresh()
