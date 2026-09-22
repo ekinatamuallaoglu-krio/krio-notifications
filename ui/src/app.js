@@ -120,6 +120,16 @@ function render(scrollToBottom = false) {
   const oldInput = document.querySelector('.composer textarea')
   const inputFocus =
     oldInput === document.activeElement ? [oldInput.selectionStart, oldInput.selectionEnd] : null
+  const focusedField = document.activeElement?.matches('input, textarea, select')
+    ? {
+        name: document.activeElement.name,
+        formClass: document.activeElement.closest('form')?.className,
+        settingProfile: document.activeElement.closest('form')?.dataset.settingProfile,
+        value: document.activeElement.value,
+        checked: document.activeElement.checked,
+        selection: [document.activeElement.selectionStart, document.activeElement.selectionEnd],
+      }
+    : null
   const searchFocus = document.querySelector('.search input') === document.activeElement
   sidebarScroll = document.querySelector('.chat-list')?.scrollTop ?? sidebarScroll
   const active = chats.find((chat) => chat.id === selected)
@@ -163,6 +173,21 @@ function render(scrollToBottom = false) {
     const input = document.querySelector('.composer textarea')
     input?.focus()
     input?.setSelectionRange(...inputFocus)
+  }
+  if (focusedField && focusedField.formClass && focusedField.name) {
+    const form = [...document.querySelectorAll('form')].find(
+      (item) =>
+        item.className === focusedField.formClass &&
+        item.dataset.settingProfile === focusedField.settingProfile,
+    )
+    const field = form?.elements.namedItem(focusedField.name)
+    if (field && !field.disabled) {
+      field.value = focusedField.value
+      if ('checked' in field) field.checked = focusedField.checked
+      field.focus()
+      if (Number.isInteger(field.selectionStart) && Number.isInteger(focusedField.selection[0]))
+        field.setSelectionRange(...focusedField.selection)
+    }
   }
 }
 
