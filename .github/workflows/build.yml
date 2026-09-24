@@ -28,8 +28,49 @@ jobs:
           path: backend/internal/app/web/dist/
           retention-days: 1
 
+  version:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      changelog: ${{ steps.version.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag version
+        id: tag_version
+        if: github.event_name == 'push'
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.tag_version.outputs.new_tag }}
+          CHANGELOG: ${{ steps.tag_version.outputs.changelog }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            VERSION="${RELEASE_TAG#v}"
+            TAG="$RELEASE_TAG"
+          else
+            VERSION="$(node -p "require('./electron/package.json').version")"
+            TAG=""
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo 'changelog<<EOF' >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo 'EOF' >> "$GITHUB_OUTPUT"
+
   build:
-    needs: build-ui
+    needs: [build-ui, version]
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +111,9 @@ jobs:
       - name: Install electron dependencies
         run: npm ci --prefix electron
 
+      - name: Set release version
+        run: npm version --prefix electron --no-git-tag-version --allow-same-version "${{ needs.version.outputs.version }}"
+
       - name: Package desktop app
         run: npm run dist --prefix electron
 
@@ -86,20 +130,13 @@ jobs:
           retention-days: 7
 
   release:
-    needs: build
+    needs: [build, version]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Tag version
-        id: tag_version
-        uses: anothrNick/github-tag-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch
-          WITH_V: true
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -107,9 +144,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Release ${{ needs.version.outputs.tag }}
+          body: ${{ needs.version.outputs.changelog }}
           files: |
             artifacts/desktop-*/**
         env:
