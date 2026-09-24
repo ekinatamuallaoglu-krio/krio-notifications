@@ -34,7 +34,13 @@
       }
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "forceCodeSigning": true,
+      "binaries": [
+        "Contents/Resources/bin/krio-chat"
+      ]
     },
     "win": {
       "target": "nsis"
